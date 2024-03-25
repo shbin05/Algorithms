@@ -1,3 +1,8 @@
+"""
+구현
+list transpose
+"""
+
 import sys
 from itertools import product
 from copy import deepcopy

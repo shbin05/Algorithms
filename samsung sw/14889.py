@@ -1,3 +1,7 @@
+"""
+backtracking
+"""
+
 n = int(input())
 table=[list(map(int,input().split())) for _ in range(n)]
 v = [False for _ in range(n)]

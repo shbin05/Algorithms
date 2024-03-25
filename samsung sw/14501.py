@@ -1,3 +1,7 @@
+"""
+Dynamic Programming
+"""
+
 N = int(input())
 T = []
 P = []
