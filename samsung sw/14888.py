@@ -1,3 +1,7 @@
+"""
+backtracking
+"""
+
 n = int(input())
 nl = list(map(int, input().split()))
 pl,mi,mu,di = map(int, input().split())

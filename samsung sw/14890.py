@@ -1,3 +1,7 @@
+"""
+구현
+"""
+
 N, L = map(int, input().split())
 heights = [list(map(int, input().split())) for _ in range(N)]
 cnt = 0
