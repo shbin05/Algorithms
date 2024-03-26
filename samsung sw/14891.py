@@ -20,13 +20,26 @@ K: 회전 횟수 => (톱니바퀴 번호, 방향), 1: 시계방향, -1: 반시�
 4번 톱니바퀴의 12시방향이 N극이면 0점, S극이면 8점
 """
 
-first = list(map(int, list(input())))
-second = list(map(int, list(input())))
-third = list(map(int, list(input())))
-fourth = list(map(int, list(input())))
+from collections import deque
 
+wheels = [deque(map(int, list(input()))) for _ in range(4)]
 k = int(input())
 move = [tuple(map(int, input().split())) for _ in range(k)]
 
-for item in move:
- 
+
+def rotate(num, dir):
+    wheel = wheels[num]
+    if dir == 1: # 시계방향
+        last = wheel.pop()
+        wheel = wheel.appendleft(last)
+    else: # 반시계방향
+        first = wheel.popleft()
+        wheel = wheel.append(first)
+
+for (num, dir) in move:
+    wheel = wheels[num-1]
+    # 돌리기 전 왼쪽, 오른쪽 톱니 값
+    left = wheel[6] 
+    right = wheel[2]
+    
+    
