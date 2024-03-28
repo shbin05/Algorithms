@@ -23,23 +23,54 @@ K: 회전 횟수 => (톱니바퀴 번호, 방향), 1: 시계방향, -1: 반시�
 from collections import deque
 
 wheels = [deque(map(int, list(input()))) for _ in range(4)]
+rights = [wheels[i][2] for i in range(len(wheels))]
+lefts = [wheels[i][6] for i in range(len(wheels))]
+
 k = int(input())
 move = [tuple(map(int, input().split())) for _ in range(k)]
 
 
 def rotate(num, dir):
+    global wheels
     wheel = wheels[num]
+
     if dir == 1: # 시계방향
         last = wheel.pop()
-        wheel = wheel.appendleft(last)
+        wheel.appendleft(last)
     else: # 반시계방향
         first = wheel.popleft()
-        wheel = wheel.append(first)
+        wheel.append(first)
+
+    wheels[num] = wheel
 
 for (num, dir) in move:
-    wheel = wheels[num-1]
-    # 돌리기 전 왼쪽, 오른쪽 톱니 값
-    left = wheel[6] 
-    right = wheel[2]
+    rotate(num-1, dir)
+
+    tmp = num - 1
+    d = dir
+    while tmp < 3:
+        d *= -1
+        if rights[tmp] != lefts[tmp+1]: 
+            rotate(tmp+1, d)
+            tmp+=1
+        else: break
     
+    tmp = num -1
+    d = dir
+    while tmp > 0:
+        d *= -1
+        if lefts[tmp] != rights[tmp-1]: 
+            rotate(tmp-1, d)
+            tmp-=1
+        else: break
     
+    rights = [wheels[i][2] for i in range(len(wheels))]
+    lefts = [wheels[i][6] for i in range(len(wheels))]
+
+answer = 0
+val = 1
+for wheel in wheels:
+    answer += wheel[0]*val
+    val*=2
+
+print(answer)
