@@ -36,7 +36,7 @@ for _ in range(n):
         x += dx[curve[j]]
         y += dy[curve[j]]
 
-        if x < 0 or x >= 101 or y < 0 or y >= 101: continue
+        if x < 0 or x > 100 or y < 0 or y > 100: continue
         board[y][x] = 1
 
 answer = 0

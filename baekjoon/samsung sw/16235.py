@@ -1,4 +1,8 @@
 """
+구현
+"""
+
+"""
 땅 크기: n x n
 좌표: (r,c), 1부터 시작
 처음에 양분은 모든 칸에 5씩
@@ -36,7 +40,7 @@ dead_trees = [[list() for _ in range(n)] for _ in range(n)]
 
 # 입력받은 초기 나무 위치, 나이 저장
 for _ in range(m):
-    x, y, z = map(int, input().split(' '))
+    x, y, z = map(int, input().split())
     trees[x - 1][y - 1].append(z)
 
 dx = [-1, -1, 0, 1, 1, 1, 0, -1]

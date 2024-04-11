@@ -4,27 +4,27 @@ backtracking
 
 n = int(input())
 table=[list(map(int,input().split())) for _ in range(n)]
-v = [False for _ in range(n)]
+visited = [False for _ in range(n)]
 
 minv = 99999
 
-def backtracking(num, ind):
+def backtracking(num, idx):
     global minv
     if num==n//2:
         x,y=0,0
         for i in range(n):
             for j in range(n):
-                if v[i] and v[j]:
+                if visited[i] and visited[j]:
                     x += table[i][j]
-                elif not v[i] and not v[j]:
+                elif not visited[i] and not visited[j]:
                     y += table[i][j]
         minv = min(minv, abs(x-y))
     else:
-        for i in range(ind, n):
-            if not v[i]:
-                v[i]=True
+        for i in range(idx, n):
+            if not visited[i]:
+                visited[i]=True
                 backtracking(num+1, i+1)
-                v[i]=False
+                visited[i]=False
 
 backtracking(0,0)
 print(minv)
