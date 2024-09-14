@@ -1,164 +1,113 @@
-from collections import deque
-
 N, M, P, C, D = map(int, input().split())
-rx, ry = map(int, input().split())
-rx-=1
-ry-=1
 
-scores = [0]*P
-stun = [0]*P
-alive = [True]*P
-pos = []
-for _ in range(P):
-    i,x,y = map(int, input().split())
-    x-=1
-    y-=1
-    pos.append([i,x,y])
-pos.sort(key = lambda x: x[0])
-pos = [li[1:] for li in pos]
+rx, ry = map(lambda x: int(x)-1, input().split())
+
+santa = [[] for _ in range(P+1)]
+for i in range(1, P+1):
+    i, x, y = map(int, input().split())
+    x, y = x-1, y-1
+    santa[i] = (x,y)
 
 board = [[0]*N for _ in range(N)]
-for i in range(P):
-    x,y = pos[i]
-    board[x][y] = i+1
+for i in range(1,P+1):
+    x,y = santa[i]
+    board[x][y] = i
 
-def find_s():
-    min_value = 1e+9
-    midx = 0
-    for i in range(P):
-        if alive[i] == False: continue
-        sx, sy = pos[i]
-        dist = (rx-sx)**2 + (ry-sy)**2
-        if dist < min_value:
-            min_value = dist
-            midx = i
-        elif dist == min_value:
-            if sx > pos[midx][0]:
-                midx = i
-            elif sx == pos[midx][0] and sy > pos[midx][1]:
-                midx = i
-    
-    return midx
+stun = [0]*(P+1)
+alive = [True]*(P+1)
+score = [0]*(P+1)
 
-def interaction(x, y, num, dx, dy):
-    global board
+def move_s(si, sx, sy, dx, dy, num): # 이동해야 하는 산타, 현재 위치, 이동 방향, 이동량
+    global santa
+    # 새로운 위치
+    nsx = sx + dx*num
+    nsy = sy + dy*num
+    santa[si] = (nsx, nsy)
 
-    tmp = board[x][y] # 기존에 있던 산타 번호
-
-    board[x][y] = num # 밀려난 산타로 대체
-    pos[num-1] = [x,y]
-
-    nx = x + dx
-    ny = y + dy
-    if 0 <= nx < N and 0 <= ny < N:
-        if board[nx][ny] == 0:
-            board[nx][ny] = tmp 
-            pos[tmp-1] = [nx, ny]
+    # 탈락 여부 체크
+    if 0 <= nsx < N and 0 <= nsy < N:
+        # 산타와 충돌 여부 체크
+        if board[nsx][nsy] == 0:
+            if board[sx][sy] == si: board[sx][sy] = 0
+            board[nsx][nsy] = si
         else:
-            interaction(nx, ny, tmp, dx, dy)
-    else: 
-        alive[num] = False
-    
+            nsi = board[nsx][nsy]
+            if board[sx][sy] == si: board[sx][sy] = 0
+            board[nsx][nsy] = si
+            move_s(nsi, nsx, nsy, dx, dy, 1)
+
+    else:
+        alive[si] = False
+        if board[sx][sy] == si: board[sx][sy] = 0
+
+    # 루돌프와 충돌 여부 체크
+    if nsx == rx and nsy == ry:
+        stun[si] = turn+1
+        score[si] += D
+        move_s(si, nsx, nsy, -dx, -dy, D)
+
     return
 
-def move_r(idx):
-    global rx, ry, board
-    sx,sy = pos[idx][0], pos[idx][1]
+def move_r():
+    global rx, ry
 
-    if sx > rx: dx = 1
-    elif sx == rx: dx = 0
-    else: dx = -1
+    min_dist = 1e+9
+    tsx, tsy = 0,0 # 가장 가까운 산타 x,y 저장
+    dx, dy = 0,0 # 루돌프 이동방향 저장
+    for i in range(1, P+1): 
+        if alive[i]==False: continue
+        sx, sy = santa[i]
+        dist = (rx-sx)**2 + (ry-sy)**2
+        if  dist < min_dist:
+            min_dist = dist
+            tsx, tsy = sx, sy
+        elif dist == min_dist:
+            if sx > tsx:
+                tsx = sx
+                tsy = sy
+            elif sx == tsx and sy > tsy:
+                tsx = sx
+                tsy = sy
+    
+    # 루돌프 한칸 이동
+    if tsx > rx: dx +=1
+    elif tsx < rx: dx -=1
 
-    if sy > ry: dy = 1
-    elif sy == ry: dy = 0
-    else: dy = -1
+    if tsy > ry: dy +=1
+    elif tsy < ry: dy -=1
 
     rx += dx
     ry += dy
 
-    if rx == sx and ry == sy and alive[idx] == True:
-        scores[idx] += C
-        nsx = sx + dx*C
-        nsy = sy + dy*C
-        if 0 <= nsx < N and 0 <= nsy < N:
-            board[sx][sy] = 0
-            if board[nsx][nsy] == 0:
-                board[nsx][nsy] = idx+1
-                pos[idx] = [nsx, nsy]
-            else: interaction(nsx, nsy, idx+1, dx, dy)
-        else: 
-            alive[idx] = False
-            board[sx][sy] = 0
-        stun[idx] = turn + 1
-
-def move_s(idx):
-    global board
-    sx, sy = pos[idx][0], pos[idx][1]
-
-    dx = [-1, 0, 1, 0]
-    dy = [0, 1, 0, -1]
-
-    min_value = (sx-rx)**2 + (sy-ry)**2
-    tmp_x, tmp_y = sx,sy
-    tmp_dx, tmp_dy = 0,0
-    for i in range(4):
-        nsx = sx+dx[i]
-        nsy = sy+dy[i]
-        if 0 <= nsx < N and 0 <= nsy < N and board[nsx][nsy] == 0:
-            dist = (nsx-rx)**2 + (nsy-ry)**2
-            if dist < min_value:
-                min_value = dist
-                tmp_x, tmp_y = nsx, nsy
-                tmp_dx, tmp_dy = dx[i], dy[i]
-    
-    board[sx][sy] = 0
-    sx, sy = tmp_x, tmp_y
-    board[sx][sy] = idx+1
-    pos[idx] = [sx, sy]
-    dx, dy = tmp_dx, tmp_dy
-
-    if rx == sx and ry == sy and alive[idx] == True:
-        scores[idx] += D
-        nsx = sx - dx*D
-        nsy = sy - dy*D
-        if 0 <= nsx < N and 0 <= nsy < N:
-            board[sx][sy] = 0
-            if board[nsx][nsy] == 0:
-                board[nsx][nsy] = idx+1
-                pos[idx] = [nsx, nsy]
-            else: interaction(nsx, nsy, idx+1, -dx, -dy)
-        else: 
-            alive[idx] = False
-            board[sx][sy] = 0
-        stun[idx] = turn + 1
-
-def print_board(board):
-    for line in board:
-        print(line)
-    print()
+    # 산타와 충돌
+    if board[rx][ry] != 0:
+        stun[board[rx][ry]] = turn+1
+        score[board[rx][ry]] += C
+        move_s(board[rx][ry], rx, ry, dx, dy, C)
 
 for turn in range(1, M+1):
-    print(f"turn: {turn}")
-    if alive.count(True) == 0: break
-    idx = find_s()
-    print(idx, pos[idx])
-    print(f"before r move: {rx,ry}")
-    print_board(board)
-    move_r(idx)
-    print(f"after r move: {rx,ry}")
-    print_board(board)
-    for i in range(P):
-        if alive[i] and turn > stun[i]:
-            move_s(i)
-    print(f"after santa move")
-    print_board(board)
-    for i in range(P):
-        if alive[i]: scores[i]+=1
-    print(f"santa position: {pos}")
+    if alive[1:].count(True) == 0: break
+    move_r()
+    for i in range(1, P+1):
+        if stun[i] >= turn or not alive[i]: continue
+        # 루돌프와 가장 가까운 방향 탐색
+        sx, sy = santa[i]
+        min_dist = (rx-sx)**2 + (ry-sy)**2
+        mdx, mdy = 0,0
+        for dsx, dsy in [(-1,0),(0,1),(1,0),(0,-1)]:
+            nsx = sx + dsx
+            nsy = sy + dsy
+            if 0 <= nsx < N and 0 <= nsy < N and board[nsx][nsy] == 0:
+                dist = (nsx-rx)**2 + (nsy-ry)**2
+                if dist < min_dist:
+                    min_dist = dist
+                    mdx, mdy = dsx, dsy
+        
+        if mdx != 0 or mdy != 0:
+            move_s(i, sx, sy, mdx, mdy, 1)
+    
+    # 살아남은 산타 1점씩 추가
+    for i in range(1, P+1):
+        if alive[i]: score[i]+=1
 
-print(*scores)
-
-
-
-
-
+print(*score[1:])

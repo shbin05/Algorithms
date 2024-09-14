@@ -1,98 +1,107 @@
-from collections import deque
+L, N, Q = map(int, input().split())
 
-# 전역 변수들을 정의합니다.
-MAX_N = 31
-MAX_L = 41
-dx = [-1, 0, 1, 0]
-dy = [0, 1, 0, -1]
+board = [[0]*L for _ in range(L)] # 기사들 위치 저장할 배열
+spike =[[0]*L for _ in range(L)] # 함정 위치 저장할 배열
+wall = [[0]*L for _ in range(L)] # 벽 위치 저장할 배열
 
-info = [[0 for _ in range(MAX_L)] for _ in range(MAX_L)]
-bef_k = [0 for _ in range(MAX_N)]
-r = [0 for _ in range(MAX_N)]
-c = [0 for _ in range(MAX_N)]
-h = [0 for _ in range(MAX_N)]
-w = [0 for _ in range(MAX_N)]
-k = [0 for _ in range(MAX_N)]
-nr = [0 for _ in range(MAX_N)]
-nc = [0 for _ in range(MAX_N)]
-dmg = [0 for _ in range(MAX_N)]
-is_moved = [False for _ in range(MAX_N)]
+for i in range(L):
+    line = list(map(int, input().split()))
+    for j in range(len(line)):
+        if line[j] == 1: spike[i][j] = 1
+        elif line[j] ==2: wall[i][j] = 1
 
+pos = [() for _ in range(N+1)]
+hp = [0]*(N+1)
+hw = [() for _ in range(N+1)]
+alive = [True]*(N+1)
+dmg = [0]*(N+1)
 
-# 움직임을 시도해봅니다.
-def try_movement(idx, dir):
-    q = deque()
-    is_pos = True
+for i in range(1, N+1): 
+    r, c, h, w, k = map(int, input().split())
+    r, c = r-1, c-1
+    pos[i] = (r,c)
+    hw[i] = (h,w)
+    hp[i] = k
 
-    # 초기화 작업입니다.
-    for i in range(1, n + 1):
-        dmg[i] = 0
-        is_moved[i] = False
-        nr[i] = r[i]
-        nc[i] = c[i]
+def area(idx):
+    square = []
+    r, c = pos[idx][0], pos[idx][1]
+    h, w = hw[idx][0], hw[idx][1]
+    for i in range(r, r+h):
+        for j in range(c, c+w):
+            if 0 <= i < L and 0 <= j < L:
+                square.append((i,j))
+    
+    return square
 
-    q.append(idx)
-    is_moved[idx] = True
+def update_board():
+    global board
 
-    while q:
-        x = q.popleft()
+    board = [[0]*L for _ in range(L)]
+    for i in range(1, N+1):
+        if not alive[i]: continue
+        square = area(i)
+        for x, y in square:
+            board[x][y] = i
 
-        nr[x] += dx[dir]
-        nc[x] += dy[dir]
+def check(i, d):
+    global mv
 
-        # 경계를 벗어나는지 체크합니다.
-        if nr[x] < 1 or nc[x] < 1 or nr[x] + h[x] - 1 > l or nc[x] + w[x] - 1 > l:
-            return False
+    square = area(i)
+    dx = [-1, 0, 1, 0]
+    dy = [0, 1, 0, -1]
 
-        # 대상 조각이 다른 조각이나 장애물과 충돌하는지 검사합니다.
-        for i in range(nr[x], nr[x] + h[x]):
-            for j in range(nc[x], nc[x] + w[x]):
-                if info[i][j] == 1:
-                    dmg[x] += 1
-                if info[i][j] == 2:
-                    return False
+    for x,y in square:
+        nx = x + dx[d]
+        ny = y + dy[d]
+        if 0 <= nx < L and 0 <= ny < L:
+            if wall[nx][ny]: 
+                mv = False
+                return
+            elif board[nx][ny] != 0 and board[nx][ny] != i:
+                mv.append(board[nx][ny])
+                check(board[nx][ny], d)
+        else: 
+            mv = False
+            return
+    
+    return
 
-        # 다른 조각과 충돌하는 경우, 해당 조각도 같이 이동합니다.
-        for i in range(1, n + 1):
-            if is_moved[i] or k[i] <= 0:
-                continue
-            if r[i] > nr[x] + h[x] - 1 or nr[x] > r[i] + h[i] - 1:
-                continue
-            if c[i] > nc[x] + w[x] - 1 or nc[x] > c[i] + w[i] - 1:
-                continue
+def move(mv, d):
+    global pos 
 
-            is_moved[i] = True
-            q.append(i)
+    dx = [-1, 0, 1, 0]
+    dy = [0, 1, 0, -1]
 
-    dmg[idx] = 0
-    return True
+    for i in mv:
+        x, y = pos[i]
+        nx, ny = x+dx[d], y+dy[d]
+        pos[i] = nx,ny
+    
+    update_board()
+    
+    return
 
-
-# 특정 조각을 지정된 방향으로 이동시키는 함수입니다.
-def move_piece(idx, move_dir):
-    if k[idx] <= 0:
-        return
-
-    # 이동이 가능한 경우, 실제 위치와 체력을 업데이트합니다.
-    if try_movement(idx, move_dir):
-        for i in range(1, n + 1):
-            r[i] = nr[i]
-            c[i] = nc[i]
-            k[i] -= dmg[i]
-
-
-# 입력값을 받습니다.
-l, n, q = map(int, input().split())
-for i in range(1, l + 1):
-    info[i][1:] = map(int, input().split())
-for i in range(1, n + 1):
-    r[i], c[i], h[i], w[i], k[i] = map(int, input().split())
-    bef_k[i] = k[i]
-
-for _ in range(q):
+for _ in range(Q):
+    update_board()
     idx, d = map(int, input().split())
-    move_piece(idx, d)
+    if not alive[idx]: continue
+    mv = [idx]
+    check(idx, d)
+    if mv:
+        move(mv, d)
+        for i in mv:
+            if i == idx: continue
+            square = area(i)
+            s = 0
+            for x,y in square:
+                if spike[x][y]: s+=1
+            hp[i]-=s
+            dmg[i]+=s
+            if not hp[i]: alive[i] = False
 
-# 결과를 계산하고 출력합니다.
-ans = sum([bef_k[i] - k[i] for i in range(1, n + 1) if k[i] > 0])
-print(ans)
+s = 0
+for i in range(1, N+1):
+    if alive[i]: s+=dmg[i]
+
+print(s)
