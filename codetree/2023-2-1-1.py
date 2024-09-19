@@ -44,10 +44,10 @@ def update_board():
         for x, y in square:
             board[x][y] = i
 
-def check(i, d):
+def check(idx, d):
     global mv
 
-    square = area(i)
+    square = area(idx)
     dx = [-1, 0, 1, 0]
     dy = [0, 1, 0, -1]
 
@@ -56,13 +56,14 @@ def check(i, d):
         ny = y + dy[d]
         if 0 <= nx < L and 0 <= ny < L:
             if wall[nx][ny]: 
-                mv = False
+                mv.clear()
                 return
-            elif board[nx][ny] != 0 and board[nx][ny] != i:
-                mv.append(board[nx][ny])
-                check(board[nx][ny], d)
+            elif board[nx][ny] != 0 and board[nx][ny] != idx:
+                if board[nx][ny] not in mv:
+                    mv.append(board[nx][ny])
+                    check(board[nx][ny], d)
         else: 
-            mv = False
+            mv.clear()
             return
     
     return
@@ -76,10 +77,10 @@ def move(mv, d):
     for i in mv:
         x, y = pos[i]
         nx, ny = x+dx[d], y+dy[d]
-        pos[i] = nx,ny
+        pos[i] = (nx,ny)
     
     update_board()
-    
+
     return
 
 for _ in range(Q):
@@ -88,7 +89,7 @@ for _ in range(Q):
     if not alive[idx]: continue
     mv = [idx]
     check(idx, d)
-    if mv:
+    if len(mv) > 0:
         move(mv, d)
         for i in mv:
             if i == idx: continue
@@ -98,7 +99,7 @@ for _ in range(Q):
                 if spike[x][y]: s+=1
             hp[i]-=s
             dmg[i]+=s
-            if not hp[i]: alive[i] = False
+            if hp[i] <= 0: alive[i] = False
 
 s = 0
 for i in range(1, N+1):
