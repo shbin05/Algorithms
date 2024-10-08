@@ -21,6 +21,36 @@ k 라운드
 
 1 머리사람 2 나머지 3 꼬리사람 4 이동 선
 
-board: 길 및 사람 표시
-teams: 각 팀별 좌표 저장
+board: 길 및 사람 표시  [][]
+teams: 각 팀별 좌표 저장 {}
 
+bfs(sx,sy):
+    q 만들고,
+    4방향 탐색하며
+    범위 안 체크,
+    visited 체크,
+    일반 사람이거나 현재 위치가 머리 사람이 아닌데 다음 사람이 꼬리 사람인지 체크
+    머리부터 꼬리까지 순서대로 team에 넣기
+    index값 team num으로 바꾸기
+
+
+for
+    for
+        머리 발견 시
+        bfs(i,j)
+        team_n += 1
+
+for r in range(K):
+    머리 사람 이동:
+        for team in team.values():
+            tx,ty = team.pop() -> 꼬리사람
+            board[tx][ty] = 0 -> 꼬리사람 idx값 비우기
+            hx,hy = team[0]
+            for dx,dy in []:
+                nx,ny 범위 안 체크, 비어 있는 길인지 체크
+                board[nx][ny] = board[hx][hy]
+                (기존 board[hx][hy] 값은 지우지 않기)
+                team.appendleft((nx,ny))
+    공 이동:
+        r = r%(4*N)
+        4가지 케이스로 나누어 실행
