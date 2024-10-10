@@ -6,8 +6,6 @@ trees = []
 
 scores = 0
 
-tmp_board = [[0]*N for _ in range(N)]
-
 for _ in range(M):
     x,y,d = map(int, input().split())
     hide.append((x-1,y-1))
@@ -17,81 +15,70 @@ for _ in range(H):
     x,y = map(int, input().split())
     trees.append((x-1,y-1))
 
+# 상우하좌
 dx = [-1,0,1,0]
 dy = [0,1,0,-1]
 
 # 술래 이동 관련
-cnt=0
-move_d = 1
-changed = False
+turned=0
+moved = 0
+mx_move = 1
+flag = False
 
 for turn in range(1, K+1):
     move = []
-    # 거리 3 이하인 도망자 선별
+    # 거리 3 이하인 도망자 선별 및 이동
     for i in range(len(hide)): 
         hx,hy = hide[i] 
-        if abs(fx-hx)+abs(fy-hy) <= 3: 
-            move.append(i)
-    # 도망자 이동
-    for idx in move:
-        hx,hy = hide[idx]
-        d = dir[idx]
-        nx,ny = hx+dx[d], hy+dy[d]
-        if 0<=nx<N and 0<=ny<N:
-            if (nx,ny)!=(fx,fy):
-                hide[idx] = (nx,ny)
-        else:
-            d = (d+2)%4
-            dir[idx] = d
+        if abs(fx-hx)+abs(fy-hy) <= 3:  
+            d = dir[i]
             nx,ny = hx+dx[d], hy+dy[d]
-            if (nx,ny)!=(fx,fy):
-                hide[idx] = (nx,ny)
+            if 0<=nx<N and 0<=ny<N:
+                if (nx,ny)!=(fx,fy):
+                    hide[i] = (nx,ny)
+            else:
+                d = (d+2)%4
+                dir[i] = d
+                nx,ny = hx+dx[d], hy+dy[d]
+                if (nx,ny)!=(fx,fy):
+                    hide[i] = (nx,ny)
     # 술래 이동
-    tmp_board[fx][fy] = 0
-    fx,fy = fx+dx[fd]*move_d, fy+dy[fd]*move_d
-    cnt+=1
-    if cnt == 2: 
-        if (fx,fy) == (N-1, 0) and not changed:
-            fd = (fd+1)%4
-        elif (fx,fy) == (N-1,N-1) and changed:
-            fd = (fd-1)%4
-            cnt = 1
-        else:
-            cnt = 0
-            if changed: 
-                fd = (fd-1)%4
-                move_d -= 1
-            else: 
-                fd = (fd+1)%4
-                move_d += 1
-    else:
-        if changed: fd = (fd-1)%4
-        else: fd = (fd+1)%4
-
+    fx,fy = fx+dx[fd], fy+dy[fd]
+    moved+=1
+    if moved == mx_move:
+        if not flag: fd = (fd+1)%4
+        else: fd = (fd-1)%4
+        turned+=1
+        moved = 0
+    if turned == 2:
+        if not flag: mx_move+=1
+        else: mx_move-=1
+        turned = 0
+    
     if (fx,fy) == (0,0):
-        changed = True
-        cnt = 0
         fd = 2
+        turned = -1
+        moved = 0
+        mx_move = N-1
+        flag = True
     elif (fx,fy) == (N//2,N//2):
-        changed = False
-        cnt = 0
         fd = 0
-        move_d = 1
-
-    tmp_board[fx][fy] = 1
+        turned = 0
+        moved = 0
+        mx_move = 1
+        flag = False
+    
+    board = [[0]*N for _ in range(N)]
+    board[fx][fy] = 1
 
     # 술래 시야 체크
-    found = []
-    for i in range(3):
-        nx,ny = fx+dx[fd]*i, fy+dy[fd]*i
-        if (nx,ny) in hide and (nx,ny) not in trees:
-            found.append((nx,ny))
+    sight = [(fx,fy), (fx+dx[fd], fy+dy[fd]), (fx+dx[fd]*2, fy+dy[fd]*2)]
+    for i in range(len(hide)-1,-1,-1):
+        if (hide[i][0],hide[i][1]) in sight and (hide[i][0],hide[i][1]) not in trees:
+            hide.pop(i)
+            dir.pop(i)
+            scores+=turn
     
-    scores += turn * len(found)
-
-    for hx,hy in found:
-        idx = hide.index((hx,hy))
-        hide.pop(idx)
-        dir.pop(idx)
+    if not hide: break
 
 print(scores)
