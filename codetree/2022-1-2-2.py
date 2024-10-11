@@ -1,3 +1,7 @@
+"""
+동시에 -> deepcopy하여 진행
+"""
+
 from copy import deepcopy
 from collections import deque
 
