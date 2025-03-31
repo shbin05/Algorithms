@@ -1,93 +1,108 @@
 from collections import deque
 
 N,M,K = map(int, input().split())
-board = [list(map(int, input().split())) for _ in range(N)]
+board=[list(map(int,input().split())) for _ in range(N)]
+attack=[[0]*M for _ in range(N)]
 
-a_turn = [[0]*M for _ in range(N)]
-
-def bfs(sx,sy,ex,ey):
-    global board, a_set
-
+def lazer(sx,sy,ex,ey):
     q = deque()
     q.append((sx,sy))
 
-    v = [[() for _ in range(M)] for _ in range(N)]
+    visited = deque()
+    prev = [[(-1,-1) for _ in range(M)] for _ in range(N)]
 
     while q:
         x,y = q.popleft()
-
-        if (x,y) == (ex,ey):
-            board[ex][ey] = max(0, board[ex][ey]-board[sx][sy])
-            cx,cy = x,y
-            while True:
-                bx,by = v[cx][cy]
-                if (bx,by) == (sx,sy): break
-                board[bx][by] = max(0, board[bx][by]-board[sx][sy]//2)
-                a_set.add((bx,by))
-                cx,cy = bx,by
-        
-            return True
-
-        for dx, dy in [(0,1),(1,0),(0,-1),(-1,0)]:
-            nx,ny = (x+dx)%N, (y+dy)%M
-            if board[nx][ny] > 0 and not v[nx][ny]:
+        for dx,dy in [(0,1),(1,0),(0,-1),(-1,0)]:
+            nx,ny = x+dx,y+dy
+            nx,ny = nx%N, ny%M
+            if board[nx][ny] > 0 and (nx,ny) not in visited:
                 q.append((nx,ny))
-                v[nx][ny] = (x,y)
+                visited.append((nx,ny))
+                prev[nx][ny]=(x,y)
     
-    return False
+    if prev[ex][ey] == (-1,-1): return False
+    else:
+        route = deque()
+        x,y = prev[ex][ey]
+        route.appendleft((x,y))
+        while (x,y) != (sx,sy):
+            x,y = prev[x][y]
+            route.appendleft((x,y))
 
-def bomb(sx,sy,ex,ey):
-    global board, a_set
-
-    board[ex][ey] = max(0, board[ex][ey]-board[sx][sy])
-
-    for dx,dy in [(-1,0),(-1,1),(0,1),(1,1),(1,0),(1,-1),(0,-1),(-1,-1)]:
-        nx,ny = (ex+dx)%N, (ey+dy)%M
-        if (nx,ny)!=(sx,sy):
-            board[nx][ny] = max(0, board[nx][ny]-board[sx][sy]//2)
-            a_set.add((nx,ny))
-    
-    return
+        return route
 
 for turn in range(1, K+1):
-    a_set = set()
-    
-    # 공격자 선정
-    mn, mx_turn, sx, sy = 5001, 0, -1, -1
+    # 살아남은 포탑 개수 count
+    alives = [board[i][j] for i in range(N) for j in range(M) if board[i][j]>0]
+    if len(alives)<2: break
+
+    # 공격자 찾기
+    min_v = 5001
+    ax,ay = 0,0
     for i in range(N):
         for j in range(M):
-            if board[i][j]<=0:    continue   
-            if mn>board[i][j] or (mn==board[i][j] and mx_turn<a_turn[i][j]) or \
-                (mn==board[i][j] and mx_turn==a_turn[i][j] and sx+sy<i+j) or \
-                (mn==board[i][j] and mx_turn==a_turn[i][j] and sx+sy==i+j and sy<j):
-                mn, mx_turn, sx, sy = board[i][j], a_turn[i][j], i, j  
+            if 0 < board[i][j] < min_v:
+                min_v = board[i][j]
+                ax,ay = i,j
+            elif board[i][j] == min_v:
+                if attack[i][j] > attack[ax][ay]:
+                    ax,ay = i,j
+                elif attack[i][j] == attack[ax][ay]:
+                    if i+j > ax+ay:
+                        ax,ay = i,j
+                    elif i+j == ax+ay:
+                        if j > ay: 
+                            ax,ay = i,j
+    board[ax][ay] += (N+M)
+    attack[ax][ay] = turn
 
-    # 피공격자 선정
-    mx, mn_turn, ex, ey = 0, turn, N, M
+    # 피공격자 찾기
+    max_v = 0
+    adx,ady = 0,0
     for i in range(N):
         for j in range(M):
-            if board[i][j]<=0:    continue   
-            if mx<board[i][j] or (mx==board[i][j] and mn_turn>a_turn[i][j]) or \
-                (mx==board[i][j] and mn_turn==a_turn[i][j] and ex+ey>i+j) or \
-                (mx==board[i][j] and mn_turn==a_turn[i][j] and ex+ey==i+j and ey>j):
-                mx, mn_turn, ex, ey = board[i][j], a_turn[i][j], i, j  
-
-    a_set.add((sx,sy))
-    a_set.add((ex,ey))
-
-    a_turn[sx][sy] = turn
-    board[sx][sy] += N+M
-
-    if not bfs(sx,sy,ex,ey):
-        bomb(sx,sy,ex,ey)
+            if (i,j) == (ax,ay): continue
+            if board[i][j] > 0 and board[i][j] > max_v:
+                max_v = board[i][j]
+                adx,ady = i,j
+            elif board[i][j] == max_v:
+                if attack[i][j] < attack[adx][ady]:
+                    adx,ady = i,j
+                if attack[i][j] == attack[adx][ady]:
+                    if i+j < adx+ady:
+                        adx,ady = i,j
+                    elif i+j == adx+ady:
+                        if j < ady:
+                            adx,ady = i,j
     
-    cnt = 0
+    # 레이저 공격 시도
+    attacked = lazer(ax,ay,adx,ady)
+    if attacked:
+        board[adx][ady] -= board[ax][ay]
+        for x,y in attacked:
+            if (x,y)!=(ax,ay):
+                board[x][y] -= board[ax][ay]//2
+    else: 
+        attacked = deque()
+        board[adx][ady]-=board[ax][ay]
+        for dx,dy in [(-1,0),(-1,1),(0,1),(1,1),(1,0),(1,-1),(0,-1),(-1,-1)]:
+            nx,ny = adx+dx,ady+dy
+            nx,ny = nx%N, ny%M
+            if (nx,ny)!=(ax,ay):
+                board[nx][ny] -= board[ax][ay]//2
+                attacked.append((nx,ny))
+            
+    
     for i in range(N):
         for j in range(M):
-            if board[i][j] > 0:
-                cnt+=1
-                if (i,j) not in a_set: board[i][j]+=1
-    
-    if cnt <= 1: break
+            if board[i][j] > 0 and (i,j)!=(ax,ay) and (i,j)!=(adx,ady) and (i,j) not in attacked:
+                board[i][j]+=1
 
-print(max(map(max, board)))
+max_v = 0
+for line in board:
+    max_v = max(max_v, max(line))
+print(max_v)
+        
+
+

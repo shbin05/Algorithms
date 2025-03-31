@@ -1,0 +1,88 @@
+r행 c열 격자
+가장 위를 1행 가장 아래를 r행
+
+k명 정령은 각자 골렘 타고 숲 탐색
+골렘은 십자 모양
+중앙 제외한 4칸 중 한 칸은 출구
+탑승할 땐 어느 방향에서나 가능하지만, 내릴 땐 정해진 출구로만 가능
+
+1. 골렘 이동
+1) 아래로 한 칸 이동
+2) 1)대로 이동 불가 시 왼쪽 방향으로 회전 후 내려감, 출구 반시계방향 이동
+3) 2)대로 이동 불가 시 오른쪽 방향으로 회전 후 내려감, 출구 시계방향 이동
+
+2. 정령 이동
+갈 수 있는 모든 칸 중 가장 아래 쪽 칸으로 이동.
+
+3. 골렘 삭제
+골렘의 몸 일부가 숲을 벗어났을 경우 모든 골렘 삭제
+이 턴에는 정령 도달 최종 위치 출력 x
+
+
+입력
+R,C,K
+K개 줄에 걸쳐 골렘 출발 c, 출구 방향 d (0,1,2,3 북동남서)
+
+출력
+각 정령들이 최종적으로 위치한 행의 총합
+
+bfs(cx,cy)
+    q = deque()
+    q.append((cx,cy))
+
+    visited = deque()
+
+    while q:
+        x,y = q.popleft()
+        for dx,dy in [(-1,0),(0,1),(1,0),(0,-1)]:
+            nx,ny = x+dx, y+dy
+            if 0<=nx<C and 0<=ny<R+3:
+                if (nx,ny) not in visited:
+                    if (board[x][y] == board[nx][ny]) or (board[x][y]==-1 and board[nx][ny]!=0):
+                        q.append((nx,ny))
+                        visited.append((nx,ny))
+    
+    visited = sorted(visited, lambda x: -x[0])
+    v = visited[0][0]
+
+    return v-2
+
+main()
+    R,C,K = map(int, input().split())
+    board = [[0]*C for _ in range(R+3)]
+
+    s = 0
+    for k in range(K):
+        c,d = map(int, input().split())
+        c-=1
+
+        cx,cy = 1,c
+        밑으로 이동:
+        while cx+2<R+3 and board[cx+2][cy]==0 and board[cx+1][cy-1]==0 and board[cx+1][cy+1]==0:
+            cx+=1
+        왼쪽 밑으로 이동:
+        while cx+2<R+3 and cy-2>=0 and board[cx-1][cy-1]==0 and board[cx][cy-2]==0 and board[cx+1][cy-1]==0 and board[cx+1][cy-2]==0 and board[cx+2][cy-1]==0:
+            cx+=1
+            cy-=1
+            d = (d-1)%4
+        오른쪽 밑으로 이동:
+        while cx+2<R+3 and cy+2<=C-1 and board[cx-1][cy+1]==0 and board[cx][cy+2]==0 and board[cx+1][cy+1]==0 and board[cx+2][cy+1] and board[cx+1][cy+2]==0:
+            cx+=1
+            cy+=1
+            d = (d+1)%4
+        
+        비우기:
+        if cx<3: 
+            board = [[0]*C for _ in range(R+3)]
+            continue
+        
+        골렘 표시:
+        for i, dx,dy in enumerate([(-1,0),(0,1),(1,0),(0,-1)]):
+            board[cx+dx][cy+dy] = k
+            if d==i: board[cx+dx][cy+dy]=-1
+        
+        정령 이동:
+        v = bfs(cx,cy)
+        s+=v
+    
+    print(s)

@@ -1,116 +1,114 @@
 from collections import deque
 
-L, N, Q = map(int, input().split())
-
-board = [[0]*L for _ in range(L)] # 기사들 위치 저장할 배열
-others = [[0]*L for _ in range(L)] # 벽 위치 저장할 배열
-
+L,N,Q = map(int, input().split())
+board = []
+traps = deque()
 for i in range(L):
-    line = list(map(int, input().split()))
-    for j in range(len(line)):
-        if line[j] == 1: others[i][j] = 1
-        elif line[j] ==2: others[i][j] = 2
+    line = list(map(int,input().split()))
+    for j in range(L):
+        if line[j] == 2: 
+            line[j]=-1
+        elif line[j] == 1: 
+            line[j] = 0 
+            traps.append((i,j))
+    board.append(line)
 
-pos = [() for _ in range(N+1)] # 기사 위치 저장
-hp = [0]*(N+1) # 기사 체력 저장
-hw = [() for _ in range(N+1)] # 기사 범위 저장
-alive = [True]*(N+1) # 기사 생존여부 저장
-dmg = [0]*(N+1) # 기사 피해량 저장
+knights=[(0,0)]
+squares=[(0,0)]
+hp=[0]
+dmg=[0]*(N+1)
+for i in range(1,N+1):
+    r,c,h,w,k = map(int, input().split())
+    knights.append((r-1,c-1))
+    squares.append((h,w))
+    hp.append(k)
 
-for i in range(1, N+1): 
-    r, c, h, w, k = map(int, input().split())
-    r, c = r-1, c-1
-    pos[i] = (r,c)
-    hw[i] = (h,w)
-    hp[i] = k
+def in_board(x,y):
+    if 0<=x<L and 0<=y<L: return True
+    else: return False
 
-def area(idx):
-    square = []
-    r, c = pos[idx][0], pos[idx][1]
-    h, w = hw[idx][0], hw[idx][1]
-    for i in range(r, r+h):
-        for j in range(c, c+w):
-                square.append((i,j))
-    
-    return square
+def init():
+    for idx in range(1, len(knights)):
+        if hp[idx]>0:
+            cx,cy = knights[idx]
+            h,w = squares[idx]
+            for i in range(cx,cx+h):
+                for j in range(cy,cy+w):
+                    board[i][j] = idx
+        else:
+            cx,cy = knights[idx]
+            h,w = squares[idx]
+            for i in range(cx,cx+h):
+                for j in range(cy,cy+w):
+                    board[i][j] = 0
 
-def update_board():
-    global board
+def can_move(idx,d):
+    dlist = [(-1,0),(0,1),(1,0),(0,-1)]
+    dx,dy = dlist[d]
 
-    board = [[0]*L for _ in range(L)]
-    for i in range(1, N+1):
-        if not alive[i]: continue
-        square = area(i)
-        for x, y in square:
-            board[x][y] = i
-
-def check(idx, d):
     q = deque()
     q.append(idx)
 
-    mv = set([])
-    mv.add(idx)
+    moved = set()
+    moved.add(idx)
 
-    dx = [-1, 0, 1, 0]
-    dy = [0, 1, 0, -1]
-
-    flag = True
-
-    while q and flag:
-        cur = q.popleft()
-        square = area(cur)
-        for x,y in square:
-            nx = x + dx[d]
-            ny = y + dy[d]
-            if 0 <= nx < L and 0 <= ny < L:
-                if others[nx][ny] == 2: 
-                    mv.clear()
-                    flag = False
-                    break
-                elif board[nx][ny] != 0 and board[nx][ny] != cur:
+    while q:
+        ci = q.popleft()
+        cx,cy = knights[ci]
+        h,w = squares[ci]
+        for x in range(cx,cx+h):
+            for y in range(cy,cy+w):
+                nx,ny = x+dx, y+dy
+                if not in_board(nx,ny) or board[nx][ny] == -1: return False
+                elif board[nx][ny] > 0 and board[nx][ny]!=ci and board[nx][ny] not in moved: 
                     q.append(board[nx][ny])
-                    mv.add(board[nx][ny])
-            else:
-                mv.clear()
-                flag = False
-                break
+                    moved.add(board[nx][ny])
+    return moved
+
+def move(moved, d):
+    dlist = [(-1,0),(0,1),(1,0),(0,-1)]
+    dx,dy = dlist[d]
+
+    for idx in moved:
+        cx,cy = knights[idx]
+        h,w = squares[idx]
+        for x in range(cx,cx+h):
+            for y in range(cy,cy+w):
+                board[x][y] = 0
+        nx,ny = cx+dx, cy+dy
+        knights[idx] = (nx,ny)
+
+    for idx in moved:
+        cx,cy = knights[idx]
+        h,w = squares[idx]
+        for x in range(cx,cx+h):
+            for y in range(cy,cy+w):
+                board[x][y] = idx
+
+def count_dmg(idx):
+    cnt = 0
+    for x,y in traps:
+        if board[x][y] == idx:
+            cnt+=1
+    hp[idx]-=cnt
+    dmg[idx]+=cnt
     
-    return mv
-
-def move(mv, d):
-    global pos 
-
-    dx = [-1, 0, 1, 0]
-    dy = [0, 1, 0, -1]
-
-    for i in mv:
-        x, y = pos[i]
-        nx, ny = x+dx[d], y+dy[d]
-        pos[i] = (nx,ny)
-    
-    update_board()
-
     return
 
 for _ in range(Q):
-    update_board()
-    idx, d = map(int, input().split())
-    if not alive[idx]: continue
-    mv = check(idx, d)
-    if len(mv) > 0:
-        move(mv, d)
-        for i in mv:
-            if i == idx: continue
-            square = area(i)
-            s = 0
-            for x,y in square:
-                if others[x][y] ==1: s+=1
-            hp[i]-=s
-            dmg[i]+=s
-            if hp[i] <= 0: alive[i] = False
+    init()
+    i,d = map(int, input().split())
+    if hp[i] < 1: continue
+    moved = can_move(i,d)
+    if moved: 
+        move(moved,d)
+        moved.remove(i)
+        for idx in moved:
+            count_dmg(idx)
 
-s = 0
-for i in range(1, N+1):
-    if alive[i]: s+=dmg[i]
+dmgs = 0
+for i in range(1,len(hp)):
+    if hp[i]>0:
+        dmgs+=dmg[i]
 
-print(s)
+print(dmgs)

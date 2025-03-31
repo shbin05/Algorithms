@@ -1,106 +1,64 @@
 from collections import deque
 
-R, C, K = map(int, input().split())
-start = []
-for _ in range(K):
-    c, d = map(int, input().split())
-    c-=1
-    start.append((c,d))
-
-# 북 동 남 서
-dx = [-1, 0, 1, 0]
-dy = [0, 1, 0, -1]
-
-board = [[0]*C for _ in range(R+3)]
-score = 0
-num = 1
-
-def check(x,y,d):
-    if d == 'down':
-        if x + 2 < R+3:
-            if board[x+2][y] == 0 and board[x+1][y-1] == 0 and board[x+1][y+1] == 0: 
-                return True
-            else: 
-                return False
-    elif d == 'left':
-        if y - 2 >= 0:
-            if board[x][y-2] == 0 and board[x-1][y-1] == 0 and board[x+1][y-1] == 0:
-                return True
-            else:
-                return False
-    elif d == 'right':
-        if y + 2 < C:
-            if board[x][y+2] == 0 and board[x-1][y+1] == 0 and board[x+1][y+1] == 0:
-                return True
-            else:
-                return False
-    
-    return False
-
-def move(x, y, d):
-    while True:
-        if check(x, y, 'down'): 
-            x += 1
-        elif check(x, y, 'left') and check(x, y-1, 'down'): 
-            y -= 1
-            x += 1
-            d -= 1
-            d %= 4
-        elif check(x, y, 'right') and check(x, y+1, 'down'):
-            y += 1
-            x += 1
-            d += 1
-            d %= 4
-        else: 
-            break
-
-    return x, y, d
-
-def clear():
-    global board
-    board = [[0]*C for _ in range(R+3)]
-    return
-
-def bfs(x,y):
-    max_value = 0
-    
+def bfs(cx,cy):
     q = deque()
-    q.append((x,y))
+    q.append((cx,cy))
 
-    visited = deque()
+    visited = []
+    max_v = 0
+
     while q:
         x,y = q.popleft()
-        for i in range(4):
-            nx = x + dx[i]
-            ny = y + dy[i]
-            if 0 <= nx < R+3 and 0 <= ny < C and (nx,ny) not in visited and board[nx][ny] != 0:
-                if board[x][y] == board[nx][ny] or board[nx][ny] == -board[x][y] or board[x][y] < 0:
-                    # 골렘 내 이동, 골렘의 출구로 이동, 현재 출구인 경우
-                    q.append((nx,ny))
-                    visited.append((nx,ny))
-                    max_value = max(nx, max_value)
+        for dx,dy in [(1,0),(-1,0),(0,1),(0,-1)]:
+            nx,ny = x+dx, y+dy
+            if 0<=nx<R+3 and 0<=ny<C:
+                if (nx,ny) not in visited:
+                    if (abs(board[x][y]) == abs(board[nx][ny])) or (board[x][y]<0 and board[nx][ny]!=0):
+                        if nx > max_v: max_v = nx
+                        q.append((nx,ny))
+                        visited.append((nx,ny))
     
-    #print(max_value-2)
-    return max_value-2
+    return max_v-2
 
-for (c,d) in start:
-    # c : 열 번호
-    # d : 출구 방향
-    x,y = 1,c # 처음 골렘 중앙 위치
-    x, y, d = move(x,y,d)
-    if x < 4: clear()
-    else: 
-        board[x][y] = num
-        for i in range(4):
-            nx = x + dx[i]
-            ny = y + dy[i]
-            if i == d: board[nx][ny] = -num
-            else: board[nx][ny] = num
-        score += bfs(x,y)
-    num+=1
+
+R,C,K = map(int, input().split())
+board = [[0]*C for _ in range(R+3)]
+
+s = 0
+for k in range(1,K+1):
+    c,d = map(int, input().split())
+    c-=1
+
+    cx,cy = 1,c
+    while True:
+        # 밑으로 이동:
+        if cx+2<R+3 and board[cx+2][cy]==0 and board[cx+1][cy-1]==0 and board[cx+1][cy+1]==0:
+            cx+=1
+        # 왼쪽 밑으로 이동:
+        elif cx+2<R+3 and cy-2>=0 and board[cx-1][cy-1]==0 and board[cx][cy-2]==0 and board[cx+1][cy-1]==0 and board[cx+1][cy-2]==0 and board[cx+2][cy-1]==0:
+            cx+=1
+            cy-=1
+            d = (d-1)%4
+        # 오른쪽 밑으로 이동:
+        elif cx+2<R+3 and cy+2<C and board[cx-1][cy+1]==0 and board[cx][cy+2]==0 and board[cx+1][cy+1]==0 and board[cx+2][cy+1]==0 and board[cx+1][cy+2]==0:
+            cx+=1
+            cy+=1
+            d = (d+1)%4
+        else: break
+
+    # 비우기:
+    if cx<4: 
+        board = [[0]*C for _ in range(R+3)]
+        continue
     
-    """for line in board:
-        print(line)
-    print()"""
-
-print(score)
+    # 골렘 표시:
+    for i, (dx,dy) in enumerate([(-1,0),(0,1),(1,0),(0,-1)]):
+        board[cx][cy] = k
+        board[cx+dx][cy+dy] = k
+        if d==i: board[cx+dx][cy+dy]=-k
+    
+    # 정령 이동:
+    v = bfs(cx,cy)
+    s+=v
+    
+print(s)
