@@ -1,80 +1,105 @@
-"""
-현재 위치에서 목표 지점까지의 최단거리를 구할 때,
-최단 거리를 위한 다음 위치를 구하기 위해서는
-거꾸로 목표 지점에서 현재 위치까지의 최단거리를 구해주는 것이 필요함!!!
-
-꼭 다시 풀어보기
-"""
-
 from collections import deque
 
 N,M = map(int, input().split())
-board = [list(map(int, input().split())) for _ in range(N)]
-stores = [()]+[tuple(map(lambda x: int(x)-1, input().split())) for _ in range(M)]
-people = [() for _ in range(M+1)]
-arrived = [False]*(M+1)
-bc = set()
+
+board = []
+camp = []
+store = [(-1,-1)]
+cur = [(-1,-1) for _ in range(M+1)]
+arrived = [0 for _ in range(M+1)]
 
 for i in range(N):
+    line = list(map(int, input().split()))
     for j in range(N):
-        if board[i][j] == 1:
-            bc.add((i,j))
-            board[i][j] = 0
+        if line[j] == 1: camp.append((i,j))
+    board.append(line)
 
-def find(sx,sy,dests): # 최단 경로 탐색
+camp.sort(key=lambda x: (x[0], x[1]))
+
+for _ in range(M):
+    x,y = map(int, input().split())
+    store.append((x-1,y-1))
+
+def bfs(sx,sy,ex,ey,type):
     q = deque()
-    v = [[0]*N for _ in range(N)]
-
     q.append((sx,sy))
-    v[sx][sy] = 1
 
-    li = []
+    visited = deque()
+    visited.append((sx,sy))
+
+    prev = [[(-1,-1) for _ in range(N)] for _ in range(N)]
+
     while q:
-        nq = deque()
-        for x,y in q:
-            if (x,y) in dests:
-                li.append((x,y))
-            else:
-                for dx,dy in ((-1,0),(1,0),(0,-1),(0,1)):
-                    nx,ny = x+dx, y+dy
-                    if 0<=nx<N and 0<=ny<N and board[nx][ny]==0 and v[nx][ny]==0:
-                        nq.append((nx,ny))
-                        v[nx][ny] = v[x][y]+1
-        if len(li)>0:
-            li.sort()
-            return li[0]
-        q=nq
+        x,y = q.popleft()
+        if (x,y) == (ex,ey):
+            break
+        for dx,dy in [(-1,0),(0,-1),(0,1),(1,0)]:
+            nx,ny = x+dx,y+dy
+            if 0<=nx<N and 0<=ny<N:
+                if (nx,ny) not in visited and board[nx][ny]!=-1:
+                    q.append((nx,ny))
+                    visited.append((nx,ny))
+                    prev[nx][ny]=(x,y)
 
-    return
-
-q = deque()
-t = 1
-while q or t==1:
-    nq = deque()
-    banned = []
-
-    for x,y,m in q:
-        if arrived[m]: continue
-        sx,sy = stores[m]
-        dests = set(((x-1,y),(x+1,y),(x,y-1),(x,y+1)))
-        nx,ny = find(sx,sy,dests)
-        if (nx,ny)==(sx,sy):
-            arrived[m] = t
-            banned.append((sx,sy))
+    if type==1:
+        if prev[ex][ey] == (-1,-1):
+            return 99999
+        elif prev[ex][ey] == (sx,sy):
+            return 1
         else:
-            nq.append((nx,ny,m))
-    q=nq
+            len = 2
+            x,y = prev[ex][ey]
+            while prev[x][y] != (sx,sy):
+                x,y = prev[x][y]
+                len+=1
+            return len
+    if type==2:
+        if prev[ex][ey] == (sx,sy):
+            return ex,ey
+        else:
+            x,y = prev[ex][ey]
+            while prev[x][y] != (sx,sy):
+                x,y = prev[x][y]
 
-    for x,y in banned:
-        board[x][y] = 1
+            return x,y
 
+t=1
+while True:
+    if arrived[1:].count(0) == 0: break
+    banned = []
+    # 베이스라인 선정
     if t<=M:
-        sx,sy = stores[t]
-        bx,by = find(sx,sy,bc)
-        bc.remove((bx,by))
-        board[bx][by] = 1
-        q.append((bx,by,t))
+        ex,ey = store[t]
+        mdist = 99999
+        mx,my = -1,-1
+        for sx,sy in camp:
+            if board[sx][sy]==-1: continue
+            
+            dist = bfs(sx,sy,ex,ey,1)
+            if dist < mdist:
+                mdist = dist
+                mx,my = sx,sy
+            
+        cur[t] = (mx,my)
+        banned.append((mx,my))
+    
+    # 사람 이동
+    for i in range(1, min(M+1, t+1)):
+        if arrived[i] == 1: continue 
+
+        sx,sy = cur[i]
+        ex,ey = store[i]
+        nx,ny = bfs(sx,sy,ex,ey,2)
+        cur[i] = (nx,ny)
+
+        if cur[i] == store[i]: 
+            arrived[i] = 1
+            banned.append((nx,ny))
+    
+    for x,y in banned:
+        board[x][y] = -1
 
     t+=1
 
-print(max(arrived))
+
+print(t)
