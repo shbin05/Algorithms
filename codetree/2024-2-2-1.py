@@ -49,8 +49,12 @@ def find_swords(dx,dy):
 
     # 1차적으로 표시
     x,y = wx,wy
-    dx2,dy2 = dy,dx
-    dx3,dy3 = dy,-dx
+    if dx!=0:
+        dx2,dy2 = dy,dx
+        dx3,dy3 = dy,-dx
+    elif dy!=0:
+        dx2,dy2 = dy,dx
+        dx3,dy3 = -dy,dx
     count = 1
     while True:
         nx,ny = x+dx*count,y+dy*count
@@ -72,7 +76,7 @@ def find_swords(dx,dy):
         if sight[sx][sy] == 1:
             sight[sx][sy]=2
             # 일직선 세로거나 가로
-            if (dx!=0 and wx==sx) or (dy!=0 and wy==sy):
+            if (dx!=0 and wy==sy) or (dy!=0 and wx==sx):
                 count=1
                 while True:
                     nx,ny = sx+dx*count,sy+dy*count
@@ -95,16 +99,16 @@ def find_swords(dx,dy):
                         dx2,dy2 = dy,dx
                 # 오른
                 elif dy>0:
-                    if sx > wx: # 위쪽인 경우
-                        dx2,dy2 = dy,-dx
+                    if sx < wx: # 위쪽인 경우
+                        dx2,dy2 = -dy,dx
                     else: # 아래쪽인 경우
-                        dx2,dy2 = dy, dx
+                        dx2,dy2 = dy,dx
                 # 왼
                 else:
-                    if sx > wx: # 위쪽인 경우
+                    if sx < wx: # 위쪽인 경우
                         dx2,dy2 = dy,dx
                     else: # 아래쪽인 경우
-                        dx2,dy2 = dy,-dx
+                        dx2,dy2 = -dy,dx
                 
                 count = 1
                 while True:
@@ -132,6 +136,11 @@ while (wx,wy)!=(px,py):
         board[wx][wy] = 0
         wx,wy = nwx,nwy
         board[nwx][nwy] = 1
+        
+        # 메두사 마주친 전사들 제거
+        cnt = swords.count((wx,wy))
+        for i in range(cnt):
+            swords.remove((wx,wy))
 
     if (wx,wy)==(px,py):
         print(0)
@@ -140,14 +149,20 @@ while (wx,wy)!=(px,py):
     # 메두사 시선
     sight = [[0]*N for _ in range(N)]
     seen = 0
-    for dx,dy in [(-1,0),(1,0),(0,-1),(0,1)]: # 상하좌우 순서대로
-        t_sight = find_swords(dx,dy)
-        cnt = 0
-        for line in t_sight:
-            cnt+=line.count(2)
-        if cnt > seen:
-            seen = cnt
-            sight = t_sight
+    if len(sight) > 0:
+        for dx,dy in [(-1,0),(1,0),(0,-1),(0,1)]: # 상하좌우 순서대로
+            t_sight = find_swords(dx,dy)
+            cnt = 0
+            seen_xy=[]
+            for i in range(N):
+                for j in range(N):
+                    if t_sight[i][j]==2:
+                        seen_xy.append((i,j))
+            for sx,sy in swords:
+                if (sx,sy) in seen_xy: cnt+=1
+            if cnt > seen:
+                seen = cnt
+                sight = t_sight
     
     stunned = [False]*len(swords)
     for i,(sx,sy) in enumerate(swords):
