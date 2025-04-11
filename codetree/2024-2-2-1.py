@@ -1,5 +1,5 @@
 from collections import deque
-
+    
 N,M = map(int, input().split())
 # 집, 공원 위치
 hx,hy,px,py = map(int,input().split())
@@ -20,32 +20,34 @@ def in_board(x,y):
     else:
         return False
 
-def find_park(): # 공원에서부터 거꾸로 탐색: 우좌하상 우선순위
+def find_routes(): # 공원에서부터 거꾸로 탐색
     q = deque()
-    q.append((px,py))
+    q.append((wx,wy))
 
-    visited = []
-    prev = [[(-1,-1) for _ in range(N)] for _ in range(N)]
-
+    visited = [[0]*N for _ in range(N)]
+    
     while q:
         x,y = q.popleft()
-        if (x,y)==(wx,wy):
-            break
-        for dx,dy in [(0,1),(0,-1),(1,0),(-1,0)]:
+        if (x,y)==(px,py):
+            routes = []
+            x,y = visited[px][py]
+            while (x,y)!=(wx,wy):
+                routes.append((x,y))
+                x,y=visited[x][y]
+            routes.reverse()
+            return routes
+                
+        for dx,dy in [(-1,0),(1,0),(0,-1),(0,1)]: 
             nx,ny = x+dx,y+dy
-            if in_board(nx,ny) and road[nx][ny] == 0 and (nx,ny) not in visited:
+            if in_board(nx,ny) and road[nx][ny] == 0 and visited[nx][ny]==0:
                 q.append((nx,ny))
-                visited.append((nx,ny))
-                prev[nx][ny]=(x,y)
+                visited[nx][ny]=(x,y)
+    
+    return -1
 
-    if prev[wx][wy]==(-1,-1):
-        return -1
-    else:
-        return prev[wx][wy]
 
 def find_swords(dx,dy):
     sight = [[0]*N for _ in range(N)]
-    cnt = 0
 
     # 1차적으로 표시
     x,y = wx,wy
@@ -60,7 +62,6 @@ def find_swords(dx,dy):
         nx,ny = x+dx*count,y+dy*count
         if in_board(nx,ny):
             sight[nx][ny]=1
-
             for i in range(1,count+1):
                 nx2,ny2 = nx+dx2*i,ny+dy2*i
                 if in_board(nx2,ny2):
@@ -72,7 +73,7 @@ def find_swords(dx,dy):
         count+=1
     
     # 가려지는 전사들 제외
-    for sx,sy in set(swords):
+    for sx,sy in swords:
         if sight[sx][sy] == 1:
             sight[sx][sy]=2
             # 일직선 세로거나 가로
@@ -125,14 +126,12 @@ def find_swords(dx,dy):
 
     return sight
 
-while (wx,wy)!=(px,py):
-    # 마녀 이동
-    next = find_park()
-    if next == -1:
-        print(-1)
-        break
-    else:
-        nwx,nwy = next
+# 마녀 이동
+routes = find_routes()
+if routes == -1:
+    print(-1)
+else:
+    for nwx,nwy in routes:
         board[wx][wy] = 0
         wx,wy = nwx,nwy
         board[nwx][nwy] = 1
@@ -142,14 +141,9 @@ while (wx,wy)!=(px,py):
         for i in range(cnt):
             swords.remove((wx,wy))
 
-    if (wx,wy)==(px,py):
-        print(0)
-        break
-
-    # 메두사 시선
-    sight = [[0]*N for _ in range(N)]
-    seen = 0
-    if len(sight) > 0:
+        # 메두사 시선
+        sight = [[0]*N for _ in range(N)]
+        seen = 0
         for dx,dy in [(-1,0),(1,0),(0,-1),(0,1)]: # 상하좌우 순서대로
             t_sight = find_swords(dx,dy)
             cnt = 0
@@ -163,54 +157,55 @@ while (wx,wy)!=(px,py):
             if cnt > seen:
                 seen = cnt
                 sight = t_sight
-    
-    stunned = [False]*len(swords)
-    for i,(sx,sy) in enumerate(swords):
-        if sight[sx][sy]==2:
-            stunned[i]=True
+        
+        stunned = [False]*len(swords)
+        for i,(sx,sy) in enumerate(swords):
+            if sight[sx][sy]==2:
+                stunned[i]=True
 
-    # 전사 이동
-    moved_sum=0
-    for i,(sx,sy) in enumerate(swords):
-        if stunned[i]: continue
-        # 첫 이동
-        dist = abs(wx-sx)+abs(wy-sy)
-        ndx,ndy = 0,0
-        for dx,dy in [(-1,0),(1,0),(0,-1),(0,1)]: #상하좌우
-            nx,ny = sx+dx,sy+dy
-            if in_board(nx,ny) and sight[nx][ny]==0:
-                ndist = abs(wx-nx)+abs(wy-ny)
-                if ndist < dist:
-                    dist = ndist
-                    ndx,ndy = dx,dy
-        # 이동했을 경우
-        if (ndx,ndy)!=(0,0):
-            moved_sum+=1
-            sx,sy = sx+ndx,sy+ndy
-            swords[i]=sx,sy
-            # 메두사 만나지 않았을 경우 
-            if (sx,sy)!=(wx,wy):
-                # 두번째 이동
-                dist = abs(wx-sx)+abs(wy-sy)
-                ndx,ndy = 0,0
-                for dx,dy in [(0,-1),(0,1),(-1,0),(1,0)]: #좌우상하
-                    nx,ny = sx+dx,sy+dy
-                    if in_board(nx,ny) and sight[nx][ny]==0:
-                        ndist = abs(wx-nx)+abs(wy-ny)
-                        if ndist < dist:
-                            dist = ndist
-                            ndx,ndy = dx,dy
-                # 이동했을 경우
-                if (ndx,ndy)!=(0,0):
-                    moved_sum+=1
-                    sx,sy = sx+ndx,sy+ndy
-                    swords[i]=sx,sy
+        # 전사 이동
+        moved_sum=0
+        for i,(sx,sy) in enumerate(swords):
+            if stunned[i]: continue
+            # 첫 이동
+            dist = abs(wx-sx)+abs(wy-sy)
+            ndx,ndy = 0,0
+            for dx,dy in [(-1,0),(1,0),(0,-1),(0,1)]: #상하좌우
+                nx,ny = sx+dx,sy+dy
+                if in_board(nx,ny) and sight[nx][ny]==0:
+                    ndist = abs(wx-nx)+abs(wy-ny)
+                    if ndist < dist:
+                        dist = ndist
+                        ndx,ndy = dx,dy
+            # 이동했을 경우
+            if (ndx,ndy)!=(0,0):
+                moved_sum+=1
+                sx,sy = sx+ndx,sy+ndy
+                swords[i]=sx,sy
+                # 메두사 만나지 않았을 경우 
+                if (sx,sy)!=(wx,wy):
+                    # 두번째 이동
+                    dist = abs(wx-sx)+abs(wy-sy)
+                    ndx,ndy = 0,0
+                    for dx,dy in [(0,-1),(0,1),(-1,0),(1,0)]: #좌우상하
+                        nx,ny = sx+dx,sy+dy
+                        if in_board(nx,ny) and sight[nx][ny]==0:
+                            ndist = abs(wx-nx)+abs(wy-ny)
+                            if ndist < dist:
+                                dist = ndist
+                                ndx,ndy = dx,dy
+                    # 이동했을 경우
+                    if (ndx,ndy)!=(0,0):
+                        moved_sum+=1
+                        sx,sy = sx+ndx,sy+ndy
+                        swords[i]=sx,sy
 
-    # 이번 턴 메두사 만난 전사 수
-    attacked = swords.count((wx,wy))
+        # 이번 턴 메두사 만난 전사 수
+        attacked = swords.count((wx,wy))
 
-    # 메두사 만난 전사 제거
-    for i in range(attacked):
-        swords.remove((wx,wy))
-    
-    print(moved_sum, seen, attacked)
+        # 메두사 만난 전사 제거
+        for i in range(attacked):
+            swords.remove((wx,wy))
+        
+        print(moved_sum, seen, attacked)
+    print(0)
